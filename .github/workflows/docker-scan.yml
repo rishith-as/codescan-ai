@@ -1,0 +1,52 @@
+# ══════════════════════════════════════
+#   .github/workflows/docker-scan.yml
+#   Trivy container vulnerability scan
+# ══════════════════════════════════════
+
+name: 🛡️ Docker Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'        # every Monday 6am UTC
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'package*.json'
+  workflow_dispatch:
+
+jobs:
+  trivy-scan:
+    name: 🔍 Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image for scanning
+        run: docker build -t codescan-ai:scan --target production .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref:     'codescan-ai:scan'
+          format:        'sarif'
+          output:        'trivy-results.sarif'
+          severity:      'CRITICAL,HIGH'
+          exit-code:     '0'             # don't fail, just report
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Print scan summary
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'codescan-ai:scan'
+          format:    'table'
+          severity:  'CRITICAL,HIGH,MEDIUM'

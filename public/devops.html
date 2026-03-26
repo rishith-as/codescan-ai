@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CodeScan AI — DevOps Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #070710;
+      --bg2:     #0e0e1a;
+      --bg3:     #161625;
+      --bg4:     #1d1d30;
+      --border:  rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --accent:  #6c57ff;
+      --accent2: #a78bfa;
+      --green:   #22d3a0;
+      --red:     #f87171;
+      --yellow:  #fbbf24;
+      --blue:    #60a5fa;
+      --orange:  #fb923c;
+      --pink:    #f472b6;
+      --text:    #e2e2ef;
+      --text2:   #8888a6;
+      --text3:   #4d4d68;
+      --mono:    'Space Mono', monospace;
+      --sans:    'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* animated grid bg */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(108,87,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(108,87,255,.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px; left: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(108,87,255,.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 28px 80px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 30px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .logo { display: flex; align-items: center; gap: 12px; }
+
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #6c57ff, #c084fc);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 13px; font-weight: 700; color: #fff;
+    }
+
+    .logo-text { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+    .logo-text span { color: var(--accent2); }
+
+    .back-btn {
+      font-family: var(--mono); font-size: 11px;
+      padding: 8px 18px; border-radius: 9px;
+      border: 1px solid var(--border2);
+      background: transparent; color: var(--text2);
+      cursor: pointer; text-decoration: none;
+      transition: all .15s; letter-spacing: .5px;
+    }
+    .back-btn:hover { background: var(--bg3); color: var(--text); }
+
+    /* ── HERO ── */
+    .hero { margin-bottom: 40px; }
+
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--accent2);
+      border: 1px solid rgba(167,139,250,.25);
+      background: rgba(167,139,250,.07);
+      padding: 5px 14px; border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero-tag::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.8); }
+    }
+
+    .hero h1 {
+      font-family: var(--mono);
+      font-size: clamp(28px, 4vw, 50px);
+      font-weight: 700; line-height: 1.05;
+      letter-spacing: -2px; margin-bottom: 14px;
+    }
+
+    .hero h1 .hl   { color: var(--accent2); }
+    .hero h1 .hl2  { color: var(--green); }
+
+    .hero p {
+      font-size: 15px; color: var(--text2);
+      max-width: 560px; line-height: 1.8;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family: var(--mono); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text3); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border);
+    }
+
+    /* ── PIPELINE DIAGRAM ── */
+    .pipeline-section { margin-bottom: 48px; }
+
+    .pipeline-flow {
+      display: flex; align-items: center;
+      gap: 0; overflow-x: auto;
+      padding: 8px 0 16px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .stage {
+      flex-shrink: 0;
+      scroll-snap-align: start;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      min-width: 130px;
+    }
+
+    .stage-box {
+      width: 110px; height: 80px;
+      border-radius: 14px;
+      border: 1px solid var(--border2);
+      background: var(--bg2);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; cursor: pointer;
+      transition: all .2s; position: relative;
+      overflow: hidden;
+    }
+
+    .stage-box::before {
+      content: '';
+      position: absolute; inset: 0;
+      opacity: 0; transition: opacity .2s;
+    }
+
+    .stage-box:hover { transform: translateY(-2px); }
+    .stage-box:hover::before { opacity: 1; }
+
+    .stage-icon { font-size: 22px; }
+    .stage-name { font-family: var(--mono); font-size: 10px; color: var(--text2); letter-spacing: .5px; }
+
+    .stage.done   .stage-box { border-color: rgba(34,211,160,.3); background: rgba(34,211,160,.05); }
+    .stage.done   .stage-box::before { background: radial-gradient(circle at 50% 0%, rgba(34,211,160,.08), transparent 70%); }
+    .stage.running .stage-box { border-color: rgba(108,87,255,.4); background: rgba(108,87,255,.07); animation: stagePulse 2s ease infinite; }
+    .stage.failed  .stage-box { border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.05); }
+    .stage.pending .stage-box { border-color: var(--border); opacity: .5; }
+
+    @keyframes stagePulse {
+      0%, 100% { border-color: rgba(108,87,255,.4); }
+      50%       { border-color: rgba(108,87,255,.8); box-shadow: 0 0 20px rgba(108,87,255,.2); }
+    }
+
+    .stage-status {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+
+    .stage.done    .stage-status { color: var(--green); }
+    .stage.running .stage-status { color: var(--accent2); }
+    .stage.failed  .stage-status { color: var(--red); }
+    .stage.pending .stage-status { color: var(--text3); }
+
+    .stage-arrow {
+      width: 20px; flex-shrink: 0;
+      display: flex; align-items: center;
+      justify-content: center;
+      color: var(--text3); font-size: 16px;
+      margin-top: -20px;
+    }
+
+    /* ── DEPLOYMENT ENVIRONMENTS ── */
+    .envs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px; margin-bottom: 48px;
+    }
+
+    .env-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 18px; padding: 24px;
+      transition: border-color .2s;
+    }
+    .env-card:hover { border-color: var(--border2); }
+
+    .env-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 18px;
+    }
+
+    .env-name-row { display: flex; align-items: center; gap: 10px; }
+    .env-icon { font-size: 22px; }
+    .env-name {
+      font-family: var(--mono); font-size: 14px;
+      font-weight: 700; color: var(--text);
+    }
+    .env-url {
+      font-size: 11px; color: var(--text3);
+      font-family: var(--mono); margin-top: 2px;
+    }
+
+    .env-badge {
+      font-family: var(--mono); font-size: 9px;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    .env-badge.live    { background: rgba(34,211,160,.12); color: var(--green); border: 1px solid rgba(34,211,160,.25); }
+    .env-badge.preview { background: rgba(167,139,250,.12); color: var(--accent2); border: 1px solid rgba(167,139,250,.25); }
+    .env-badge.local   { background: rgba(96,165,250,.12); color: var(--blue); border: 1px solid rgba(96,165,250,.25); }
+
+    .env-meta { display: flex; flex-direction: column; gap: 10px; }
+
+    .env-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .env-row:last-child { border-bottom: none; }
+
+    .env-key { font-size: 12px; color: var(--text2); }
+    .env-val {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text); font-weight: 700;
+    }
+    .env-val.green  { color: var(--green); }
+    .env-val.yellow { color: var(--yellow); }
+    .env-val.blue   { color: var(--blue); }
+
+    /* ── DOCKER SECTION ── */
+    .docker-section { margin-bottom: 48px; }
+
+    .docker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .docker-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px;
+    }
+
+    .docker-card-header {
+      display: flex; align-items: center;
+      gap: 10px; margin-bottom: 14px;
+    }
+
+    .docker-logo {
+      width: 36px; height: 36px;
+      background: rgba(96,165,250,.1);
+      border: 1px solid rgba(96,165,250,.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .docker-title { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+    .docker-sub   { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+    .docker-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+
+    .ds {
+      background: var(--bg3); border-radius: 8px;
+      padding: 8px 12px; text-align: center; flex: 1; min-width: 60px;
+    }
+    .ds-val   { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+    .ds-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+    .code-snippet {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 10px; padding: 14px 16px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text2); white-space: pre;
+      overflow-x: auto; line-height: 1.7;
+    }
+
+    .code-snippet .comment { color: var(--text3); }
+    .code-snippet .cmd     { color: var(--accent2); }
+    .code-snippet .str     { color: var(--green); }
+    .code-snippet .kw      { color: var(--orange); }
+
+    /* ── GITHUB ACTIONS ── */
+    .actions-section { margin-bottom: 48px; }
+
+    .jobs-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .job-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 20px;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .job-left { display: flex; align-items: center; gap: 14px; }
+
+    .job-icon-wrap {
+      width: 42px; height: 42px;
+      border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+
+    .job-icon-wrap.green  { background: rgba(34,211,160,.1); }
+    .job-icon-wrap.purple { background: rgba(108,87,255,.1); }
+    .job-icon-wrap.blue   { background: rgba(96,165,250,.1); }
+    .job-icon-wrap.red    { background: rgba(248,113,113,.1); }
+    .job-icon-wrap.yellow { background: rgba(251,191,36,.1); }
+
+    .job-name { font-family: var(--mono); font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .job-desc { font-size: 12px; color: var(--text2); }
+
+    .job-right { display: flex; align-items: center; gap: 14px; }
+
+    .job-time {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text3);
+    }
+
+    .job-status {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: .8px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    .job-status.pass   { background: rgba(34,211,160,.1); color: var(--green); }
+    .job-status.run    { background: rgba(108,87,255,.1); color: var(--accent2); }
+    .job-status.wait   { background: var(--bg3); color: var(--text3); }
+
+    .job-progress {
+      height: 2px; background: var(--border);
+      border-radius: 1px; margin-top: 10px;
+      overflow: hidden; width: 100%;
+    }
+
+    .job-progress-bar {
+      height: 100%; border-radius: 1px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1s ease;
+    }
+
+    /* ── SECRETS TABLE ── */
+    .secrets-section { margin-bottom: 48px; }
+
+    .secrets-table { width: 100%; border-collapse: collapse; }
+
+    .secrets-table th {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 1px; text-transform: uppercase;
+      color: var(--text3); text-align: left;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+
+    .secrets-table td {
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .secrets-table tr:hover td { background: var(--bg3); }
+
+    .secret-name { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+    .secret-val  { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+    .secret-desc { font-size: 12px; color: var(--text2); }
+
+    .secret-tag {
+      font-size: 9px; font-family: var(--mono);
+      padding: 3px 9px; border-radius: 5px;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .secret-tag.required { background: rgba(248,113,113,.1); color: var(--red); }
+    .secret-tag.optional { background: rgba(251,191,36,.1);  color: var(--yellow); }
+
+    /* ── QUICK START ── */
+    .quickstart { margin-bottom: 48px; }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .step-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+      position: relative; overflow: hidden;
+    }
+
+    .step-num {
+      position: absolute; top: -10px; right: 12px;
+      font-family: var(--mono); font-size: 60px;
+      font-weight: 700; color: rgba(108,87,255,.07);
+      line-height: 1; pointer-events: none;
+    }
+
+    .step-icon { font-size: 26px; margin-bottom: 10px; }
+    .step-title {
+      font-family: var(--mono); font-size: 13px;
+      font-weight: 700; margin-bottom: 8px;
+      color: var(--text);
+    }
+    .step-body { font-size: 12px; color: var(--text2); line-height: 1.75; }
+
+    .step-code {
+      margin-top: 12px; background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+      font-family: var(--mono); font-size: 11px;
+      color: var(--accent2); white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── FILE TREE ── */
+    .file-tree-section { margin-bottom: 48px; }
+
+    .file-tree {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      font-family: var(--mono); font-size: 12px;
+      line-height: 2;
+    }
+
+    .ft-dir  { color: var(--accent2); }
+    .ft-file { color: var(--text2); }
+    .ft-new  { color: var(--green); }
+    .ft-comment { color: var(--text3); font-size: 11px; }
+    .ft-indent { color: var(--border2); }
+
+    /* ── ANIMATED PIPELINE STATUS ── */
+    .live-status {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 18px; padding: 24px;
+      margin-bottom: 48px;
+    }
+
+    .ls-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 20px;
+    }
+
+    .ls-title { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+
+    .ls-live {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px;
+      color: var(--green); letter-spacing: .5px;
+    }
+
+    .ls-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease infinite;
+    }
+
+    .commit-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .commit {
+      display: flex; align-items: center;
+      gap: 12px; padding: 12px 16px;
+      background: var(--bg3); border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .commit-hash {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--accent2); flex-shrink: 0; width: 58px;
+    }
+    .commit-msg { font-size: 13px; flex: 1; }
+    .commit-author { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+
+    .commit-checks { display: flex; gap: 5px; flex-shrink: 0; }
+
+    .chk {
+      width: 20px; height: 20px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .chk.pass { background: rgba(34,211,160,.12); }
+    .chk.fail { background: rgba(248,113,113,.12); }
+    .chk.run  { background: rgba(108,87,255,.12); animation: stagePulse 1.5s ease infinite; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .pipeline-flow { padding-bottom: 8px; }
+      .stage { min-width: 100px; }
+      .stage-box { width: 90px; height: 70px; }
+      .job-right { width: 100%; justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">&lt;/&gt;</div>
+      <div class="logo-text">Code<span>Scan</span> AI</div>
+    </div>
+    <a href="index.html" class="back-btn">← Back to App</a>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">DevOps Pipeline Active</div>
+    <h1>CI/CD <span class="hl">Pipeline</span> &<br><span class="hl2">Infrastructure</span></h1>
+    <p>Full DevOps implementation with GitHub Actions, Docker containers, and Vercel deployment. Every push triggers automated testing, security scanning, and deployment.</p>
+  </div>
+
+  <!-- LIVE PIPELINE STATUS -->
+  <div class="live-status">
+    <div class="ls-header">
+      <div class="ls-title">// Recent Commits — main branch</div>
+      <div class="ls-live"><div class="ls-dot"></div> Live Feed</div>
+    </div>
+    <div class="commit-list">
+      <div class="commit">
+        <div class="commit-hash">a3f9c21</div>
+        <div class="commit-msg">feat: add Docker multi-stage build + health check</div>
+        <div class="commit-author">you · 2m ago</div>
+        <div class="commit-checks">
+          <div class="chk pass" title="tests">✓</div>
+          <div class="chk pass" title="build">✓</div>
+          <div class="chk pass" title="deploy">✓</div>
+        </div>
+      </div>
+      <div class="commit">
+        <div class="commit-hash">b8e1d44</div>
+        <div class="commit-msg">ci: add Trivy container vulnerability scanner</div>
+        <div class="commit-author">you · 1h ago</div>
+        <div class="commit-checks">
+          <div class="chk pass">✓</div>
+          <div class="chk pass">✓</div>
+          <div class="chk pass">✓</div>
+        </div>
+      </div>
+      <div class="commit">
+        <div class="commit-hash">c2a7f88</div>
+        <div class="commit-msg">devops: GitHub Actions CI/CD pipeline + Vercel serverless</div>
+        <div class="commit-author">you · 3h ago</div>
+        <div class="commit-checks">
+          <div class="chk pass">✓</div>
+          <div class="chk pass">✓</div>
+          <div class="chk pass">✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE FLOW -->
+  <div class="pipeline-section">
+    <div class="section-title">// CI/CD Pipeline Flow</div>
+    <div class="pipeline-flow">
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">📦</div><div class="stage-name">CODE PUSH</div></div>
+        <div class="stage-status">✓ done</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">🧪</div><div class="stage-name">LINT & TEST</div></div>
+        <div class="stage-status">✓ passed</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">🔒</div><div class="stage-name">SECURITY</div></div>
+        <div class="stage-status">✓ clean</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">🐳</div><div class="stage-name">DOCKER BUILD</div></div>
+        <div class="stage-status">✓ pushed</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">🔍</div><div class="stage-name">IMAGE SCAN</div></div>
+        <div class="stage-status">✓ safe</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">🚀</div><div class="stage-name">DEPLOY PROD</div></div>
+        <div class="stage-status">✓ live</div>
+      </div>
+      <div class="stage-arrow">→</div>
+
+      <div class="stage done">
+        <div class="stage-box"><div class="stage-icon">📢</div><div class="stage-name">NOTIFY</div></div>
+        <div class="stage-status">✓ sent</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DEPLOYMENT ENVIRONMENTS -->
+  <div class="section-title">// Deployment Environments</div>
+  <div class="envs-grid" style="margin-bottom:48px">
+
+    <div class="env-card">
+      <div class="env-header">
+        <div class="env-name-row">
+          <div class="env-icon">🌐</div>
+          <div>
+            <div class="env-name">Production</div>
+            <div class="env-url">codescan-ai.vercel.app</div>
+          </div>
+        </div>
+        <div class="env-badge live">● Live</div>
+      </div>
+      <div class="env-meta">
+        <div class="env-row"><span class="env-key">Platform</span><span class="env-val">Vercel</span></div>
+        <div class="env-row"><span class="env-key">Branch</span><span class="env-val green">main</span></div>
+        <div class="env-row"><span class="env-key">Last Deploy</span><span class="env-val">2m ago</span></div>
+        <div class="env-row"><span class="env-key">Functions</span><span class="env-val blue">Serverless</span></div>
+        <div class="env-row"><span class="env-key">Region</span><span class="env-val">iad1 (US East)</span></div>
+      </div>
+    </div>
+
+    <div class="env-card">
+      <div class="env-header">
+        <div class="env-name-row">
+          <div class="env-icon">🔍</div>
+          <div>
+            <div class="env-name">Preview</div>
+            <div class="env-url">codescan-pr-42.vercel.app</div>
+          </div>
+        </div>
+        <div class="env-badge preview">PR #42</div>
+      </div>
+      <div class="env-meta">
+        <div class="env-row"><span class="env-key">Platform</span><span class="env-val">Vercel</span></div>
+        <div class="env-row"><span class="env-key">Branch</span><span class="env-val" style="color:var(--accent2)">feature/devops</span></div>
+        <div class="env-row"><span class="env-key">Triggered by</span><span class="env-val">Pull Request</span></div>
+        <div class="env-row"><span class="env-key">Auto-comment</span><span class="env-val green">✓ enabled</span></div>
+        <div class="env-row"><span class="env-key">Expires</span><span class="env-val yellow">PR merge</span></div>
+      </div>
+    </div>
+
+    <div class="env-card">
+      <div class="env-header">
+        <div class="env-name-row">
+          <div class="env-icon">🐳</div>
+          <div>
+            <div class="env-name">Local Docker</div>
+            <div class="env-url">localhost:3000</div>
+          </div>
+        </div>
+        <div class="env-badge local">Docker</div>
+      </div>
+      <div class="env-meta">
+        <div class="env-row"><span class="env-key">Image</span><span class="env-val">node:20-alpine</span></div>
+        <div class="env-row"><span class="env-key">Stages</span><span class="env-val">builder → prod</span></div>
+        <div class="env-row"><span class="env-key">MongoDB</span><span class="env-val blue">mongo:7-jammy</span></div>
+        <div class="env-row"><span class="env-key">Hot reload</span><span class="env-val green">✓ override.yml</span></div>
+        <div class="env-row"><span class="env-key">Health check</span><span class="env-val green">✓ /health</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GITHUB ACTIONS JOBS -->
+  <div class="actions-section">
+    <div class="section-title">// GitHub Actions Jobs (ci-cd.yml)</div>
+    <div class="jobs-list">
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap green">🧪</div>
+          <div>
+            <div class="job-name">1. Lint & Test</div>
+            <div class="job-desc">Node.js 20 · npm ci · ESLint · Jest coverage upload</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~45s</div>
+          <div class="job-status pass">✓ Pass</div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap red">🔒</div>
+          <div>
+            <div class="job-name">2. Security Audit</div>
+            <div class="job-desc">npm audit --audit-level=high · Gitleaks secret scanning</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~30s</div>
+          <div class="job-status pass">✓ Clean</div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap blue">🐳</div>
+          <div>
+            <div class="job-name">3. Docker Build & Push</div>
+            <div class="job-desc">Buildx multi-arch (amd64/arm64) · GHCR · BuildKit cache</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~2m 10s</div>
+          <div class="job-status pass">✓ Pushed</div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap purple">🔍</div>
+          <div>
+            <div class="job-name">4. Deploy Preview (PR only)</div>
+            <div class="job-desc">Vercel preview URL · Auto-comment on pull request · Scoped deploy</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~55s</div>
+          <div class="job-status pass">✓ Live</div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap green">🚀</div>
+          <div>
+            <div class="job-name">5. Deploy Production (main only)</div>
+            <div class="job-desc">vercel --prod · Needs test + build jobs · environment protection</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~1m 05s</div>
+          <div class="job-status pass">✓ Deployed</div>
+        </div>
+      </div>
+
+      <div class="job-card">
+        <div class="job-left">
+          <div class="job-icon-wrap yellow">📢</div>
+          <div>
+            <div class="job-name">6. Notify</div>
+            <div class="job-desc">Slack webhook · success & failure messages · run URL included</div>
+          </div>
+        </div>
+        <div class="job-right">
+          <div class="job-time">~10s</div>
+          <div class="job-status pass">✓ Sent</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DOCKER SECTION -->
+  <div class="docker-section">
+    <div class="section-title">// Docker Architecture</div>
+    <div class="docker-grid">
+
+      <div class="docker-card">
+        <div class="docker-card-header">
+          <div class="docker-logo">🏗️</div>
+          <div>
+            <div class="docker-title">Multi-Stage Dockerfile</div>
+            <div class="docker-sub">builder → production</div>
+          </div>
+        </div>
+        <div class="docker-stats">
+          <div class="ds"><div class="ds-val" style="color:var(--green)">2</div><div class="ds-label">Stages</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--blue)">~85MB</div><div class="ds-label">Image Size</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--accent2)">non-root</div><div class="ds-label">User</div></div>
+        </div>
+        <div class="code-snippet"><span class="comment"># Stage 1: install all deps</span>
+<span class="kw">FROM</span> node:20-alpine <span class="kw">AS</span> builder
+<span class="cmd">COPY</span> package*.json ./
+<span class="cmd">RUN</span> npm ci --include=dev
+
+<span class="comment"># Stage 2: production only</span>
+<span class="kw">FROM</span> node:20-alpine <span class="kw">AS</span> production
+<span class="cmd">RUN</span> npm ci --only=production
+<span class="cmd">USER</span> codescan  <span class="comment"># non-root</span></div>
+      </div>
+
+      <div class="docker-card">
+        <div class="docker-card-header">
+          <div class="docker-logo">🎛️</div>
+          <div>
+            <div class="docker-title">Docker Compose Stack</div>
+            <div class="docker-sub">app + mongo + dev override</div>
+          </div>
+        </div>
+        <div class="docker-stats">
+          <div class="ds"><div class="ds-val" style="color:var(--green)">2</div><div class="ds-label">Services</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--blue)">1</div><div class="ds-label">Volume</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--accent2)">bridge</div><div class="ds-label">Network</div></div>
+        </div>
+        <div class="code-snippet"><span class="comment"># Production</span>
+<span class="cmd">docker compose up -d</span>
+
+<span class="comment"># Development (hot reload)</span>
+<span class="comment"># override.yml auto-loaded</span>
+<span class="cmd">docker compose up</span>
+
+<span class="comment"># View logs</span>
+<span class="cmd">docker compose logs -f app</span></div>
+      </div>
+
+      <div class="docker-card">
+        <div class="docker-card-header">
+          <div class="docker-logo">🔐</div>
+          <div>
+            <div class="docker-title">Security Hardening</div>
+            <div class="docker-sub">Trivy scan on every push</div>
+          </div>
+        </div>
+        <div class="docker-stats">
+          <div class="ds"><div class="ds-val" style="color:var(--green)">0</div><div class="ds-label">CRITICAL</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--green)">0</div><div class="ds-label">HIGH</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--yellow)">weekly</div><div class="ds-label">Schedule</div></div>
+        </div>
+        <div class="code-snippet"><span class="comment"># Trivy scans image for CVEs</span>
+<span class="comment"># Results → GitHub Security tab</span>
+<span class="comment"># Runs on: push to main,</span>
+<span class="comment">#   Dockerfile changes,</span>
+<span class="comment">#   every Monday 6am UTC</span>
+
+<span class="str">severity: CRITICAL,HIGH</span></div>
+      </div>
+
+      <div class="docker-card">
+        <div class="docker-card-header">
+          <div class="docker-logo">📦</div>
+          <div>
+            <div class="docker-title">GitHub Container Registry</div>
+            <div class="docker-sub">ghcr.io auto-publish</div>
+          </div>
+        </div>
+        <div class="docker-stats">
+          <div class="ds"><div class="ds-val" style="color:var(--green)">2</div><div class="ds-label">Platforms</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--blue)">GHA cache</div><div class="ds-label">Build Cache</div></div>
+          <div class="ds"><div class="ds-val" style="color:var(--accent2)">auto</div><div class="ds-label">Tags</div></div>
+        </div>
+        <div class="code-snippet"><span class="comment"># Auto-tagged images:</span>
+<span class="str">ghcr.io/you/repo:latest</span>
+<span class="str">ghcr.io/you/repo:main</span>
+<span class="str">ghcr.io/you/repo:sha-a3f9c21</span>
+
+<span class="comment"># Multi-arch (push only):</span>
+<span class="str">linux/amd64, linux/arm64</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GITHUB SECRETS -->
+  <div class="secrets-section">
+    <div class="section-title">// GitHub Secrets Required</div>
+    <table class="secrets-table">
+      <thead>
+        <tr>
+          <th>Secret Name</th>
+          <th>Value / Where to get it</th>
+          <th>Used in</th>
+          <th>Required?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="secret-name">VERCEL_TOKEN</div></td>
+          <td><div class="secret-desc">vercel.com → Settings → Tokens</div></td>
+          <td><div class="secret-val">deploy-preview, deploy-prod</div></td>
+          <td><span class="secret-tag required">required</span></td>
+        </tr>
+        <tr>
+          <td><div class="secret-name">VERCEL_ORG_ID</div></td>
+          <td><div class="secret-desc">vercel.com → Team Settings → General</div></td>
+          <td><div class="secret-val">deploy-preview, deploy-prod</div></td>
+          <td><span class="secret-tag required">required</span></td>
+        </tr>
+        <tr>
+          <td><div class="secret-name">VERCEL_PROJECT_ID</div></td>
+          <td><div class="secret-desc">.vercel/project.json after vercel link</div></td>
+          <td><div class="secret-val">deploy-preview, deploy-prod</div></td>
+          <td><span class="secret-tag required">required</span></td>
+        </tr>
+        <tr>
+          <td><div class="secret-name">MONGO_URI</div></td>
+          <td><div class="secret-desc">MongoDB Atlas → Connect → Drivers URI</div></td>
+          <td><div class="secret-val">Vercel env vars (set in dashboard)</div></td>
+          <td><span class="secret-tag required">required</span></td>
+        </tr>
+        <tr>
+          <td><div class="secret-name">SLACK_WEBHOOK_URL</div></td>
+          <td><div class="secret-desc">api.slack.com → Apps → Incoming Webhooks</div></td>
+          <td><div class="secret-val">notify job</div></td>
+          <td><span class="secret-tag optional">optional</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- QUICK START -->
+  <div class="quickstart">
+    <div class="section-title">// Quick Start Guide</div>
+    <div class="steps-grid">
+
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">🐳</div>
+        <div class="step-title">Run with Docker</div>
+        <div class="step-body">Spin up the full stack locally — app + MongoDB — with one command.</div>
+        <div class="step-code">cp .env.example .env
+# edit .env with your keys
+docker compose up -d
+# → http://localhost:3000</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">⚙️</div>
+        <div class="step-title">Deploy to Vercel</div>
+        <div class="step-body">Push to GitHub and let GitHub Actions handle the rest automatically.</div>
+        <div class="step-code">npm i -g vercel
+vercel login
+vercel link
+# add secrets in GitHub repo
+git push origin main</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">🔐</div>
+        <div class="step-title">Add GitHub Secrets</div>
+        <div class="step-body">Go to Settings → Secrets → Actions and add the 4 required secrets above.</div>
+        <div class="step-code">VERCEL_TOKEN=...
+VERCEL_ORG_ID=...
+VERCEL_PROJECT_ID=...
+# Set MONGO_URI in Vercel
+# dashboard env vars</div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-icon">🔬</div>
+        <div class="step-title">Open a Pull Request</div>
+        <div class="step-body">Every PR gets a live preview URL posted as a comment automatically.</div>
+        <div class="step-code">git checkout -b feature/xyz
+# make changes
+git push origin feature/xyz
+# → open PR on GitHub
+# → bot posts preview URL</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FILE TREE -->
+  <div class="file-tree-section">
+    <div class="section-title">// Project Structure (DevOps Files)</div>
+    <div class="file-tree">
+<span class="ft-dir">codescan-ai/</span>
+<span class="ft-indent">├── </span><span class="ft-new">.github/</span>
+<span class="ft-indent">│   └── workflows/</span>
+<span class="ft-indent">│       ├── </span><span class="ft-new">ci-cd.yml</span>          <span class="ft-comment">← main pipeline (6 jobs)</span>
+<span class="ft-indent">│       └── </span><span class="ft-new">docker-scan.yml</span>    <span class="ft-comment">← weekly Trivy CVE scan</span>
+<span class="ft-indent">│</span>
+<span class="ft-indent">├── </span><span class="ft-new">api/</span>                      <span class="ft-comment">← Vercel serverless functions</span>
+<span class="ft-indent">│   ├── </span><span class="ft-new">reviews.js</span>
+<span class="ft-indent">│   ├── </span><span class="ft-new">reviews/[id].js</span>
+<span class="ft-indent">│   ├── </span><span class="ft-new">stats.js</span>
+<span class="ft-indent">│   └── </span><span class="ft-new">health.js</span>
+<span class="ft-indent">│</span>
+<span class="ft-indent">├── </span><span class="ft-new">scripts/</span>
+<span class="ft-indent">│   └── </span><span class="ft-new">mongo-init.js</span>         <span class="ft-comment">← Docker init + indexes</span>
+<span class="ft-indent">│</span>
+<span class="ft-indent">├── public/</span>
+<span class="ft-indent">│   ├── </span><span class="ft-file">index.html</span>
+<span class="ft-indent">│   ├── </span><span class="ft-file">script.js</span>
+<span class="ft-indent">│   ├── </span><span class="ft-file">style.css</span>
+<span class="ft-indent">│   ├── </span><span class="ft-file">config.js</span>
+<span class="ft-indent">│   └── </span><span class="ft-new">devops.html</span>           <span class="ft-comment">← this dashboard</span>
+<span class="ft-indent">│</span>
+<span class="ft-indent">├── </span><span class="ft-file">server.js</span>
+<span class="ft-indent">├── </span><span class="ft-new">Dockerfile</span>                <span class="ft-comment">← multi-stage, non-root, healthcheck</span>
+<span class="ft-indent">├── </span><span class="ft-new">docker-compose.yml</span>        <span class="ft-comment">← prod stack</span>
+<span class="ft-indent">├── </span><span class="ft-new">docker-compose.override.yml</span> <span class="ft-comment">← dev hot-reload</span>
+<span class="ft-indent">├── </span><span class="ft-new">vercel.json</span>               <span class="ft-comment">← routing + security headers</span>
+<span class="ft-indent">├── </span><span class="ft-new">.dockerignore</span>
+<span class="ft-indent">├── </span><span class="ft-file">.gitignore</span>
+<span class="ft-indent">├── </span><span class="ft-file">.env</span>                      <span class="ft-comment">← never commit!</span>
+<span class="ft-indent">└── </span><span class="ft-file">package.json</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Animate pipeline stages on load
+  const stages = document.querySelectorAll('.stage');
+  stages.forEach((s, i) => {
+    s.style.opacity = '0';
+    s.style.transform = 'translateY(12px)';
+    setTimeout(() => {
+      s.style.transition = 'all 0.4s ease';
+      s.style.opacity = '1';
+      s.style.transform = 'translateY(0)';
+    }, i * 100);
+  });
+
+  // Animate job cards
+  const jobs = document.querySelectorAll('.job-card');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateX(0)';
+        }, i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  jobs.forEach(j => {
+    j.style.opacity = '0';
+    j.style.transform = 'translateX(-12px)';
+    j.style.transition = 'all 0.35s ease';
+    observer.observe(j);
+  });
+</script>
+
+</body>
+</html>

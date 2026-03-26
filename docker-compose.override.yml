@@ -1,0 +1,25 @@
+# ══════════════════════════════════════
+#   docker-compose.override.yml
+#   Auto-loaded in dev — overrides prod
+# ══════════════════════════════════════
+
+version: '3.9'
+
+services:
+  app:
+    build:
+      target: builder          # use the builder stage (includes devDeps)
+    volumes:
+      - .:/app                 # live-mount source for hot reload
+      - /app/node_modules      # keep container's node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    command: ["npx", "nodemon", "server.js"]
+    ports:
+      - "3000:3000"
+      - "9229:9229"            # Node.js debugger port
+
+  mongo:
+    ports:
+      - "27017:27017"

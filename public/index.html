@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CodeScan AI — Code Reviewer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">&lt;/&gt;</div>
+      <div class="logo-text">Code<span>Scan</span> AI</div>
+    </div>
+    <div class="header-right">
+      <nav>
+        <button class="nav-btn active" onclick="showPage('reviewer')">Reviewer</button>
+        <button class="nav-btn"        onclick="showPage('history')">History</button>
+        <button class="nav-btn"        onclick="showPage('database')">Database</button>
+        <button class="nav-btn"        onclick="showPage('about')">About</button>
+        <a      class="nav-btn devops-btn" href="devops.html">⚙ DevOps</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ REVIEWER PAGE ═══ -->
+  <div class="page active" id="page-reviewer">
+    <div class="hero">
+      <h1>AI-Powered<br><span class="hl">Code Review</span> Engine</h1>
+      <p>Paste any code. Get instant bug detection, complexity analysis, and optimized code — powered by Groq AI.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="s-total"  style="color:var(--accent2)">0</div><div class="stat-label">Reviewed</div></div>
+      <div class="stat"><div class="stat-val" id="s-errors" style="color:var(--red)">0</div><div class="stat-label">Errors Found</div></div>
+      <div class="stat"><div class="stat-val" id="s-avg"    style="color:var(--green)">—</div><div class="stat-label">Avg Score</div></div>
+      <div class="stat"><div class="stat-val" id="s-saved"  style="color:var(--yellow)">0</div><div class="stat-label">Saved to DB</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <select class="lang-sel" id="lang-sel">
+          <option value="auto">Auto Detect</option>
+          <option value="java">Java</option>
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="cpp">C++</option>
+          <option value="c">C</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+          <option value="kotlin">Kotlin</option>
+          <option value="swift">Swift</option>
+          <option value="php">PHP</option>
+          <option value="ruby">Ruby</option>
+        </select>
+        <span class="char-count" id="char-count">0 chars</span>
+        <span class="char-count" id="line-count">0 lines</span>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// Input Code</span>
+          <button class="mini-btn" onclick="clearAll()">✕ Clear</button>
+        </div>
+        <textarea id="code-in" oninput="onCodeInput()"
+          placeholder="// Paste your code here...&#10;// Supports Java, Python, JS, C++, Go, Rust &amp; more"></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">// Review Output</span>
+          <span class="status-dot" id="status-dot" style="color:var(--text3)">● READY</span>
+        </div>
+        <div class="review-inner" id="review-out">
+          <div class="empty-state">
+            <div class="empty-icon">⚡</div>
+            <div class="empty-title">No review yet</div>
+            <div class="empty-sub">Paste code and click Run Review</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="run-btn" onclick="runReview()">▶ &nbsp;Run Review</button>
+      <button class="btn btn-ghost" onclick="loadSample(1)">Java Sample</button>
+      <button class="btn btn-ghost" onclick="loadSample(2)">Python Sample</button>
+      <button class="btn btn-ghost" onclick="loadSample(3)">JS Sample</button>
+    </div>
+  </div>
+
+  <!-- ═══ HISTORY PAGE ═══ -->
+  <div class="page" id="page-history">
+    <div class="hero">
+      <h1>Session <span class="hl">History</span></h1>
+      <p>Reviews from this session. Saved ones go to MongoDB.</p>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn-danger" onclick="clearHistory()">Clear History</button>
+    </div>
+    <div class="hist-grid" id="hist-list">
+      <div class="hist-empty">No reviews yet — go review some code!</div>
+    </div>
+  </div>
+
+  <!-- ═══ DATABASE PAGE ═══ -->
+  <div class="page" id="page-database">
+    <div class="hero">
+      <h1>MongoDB <span class="hl">Database</span></h1>
+      <p>All reviews saved to MongoDB. Persists across sessions.</p>
+    </div>
+    <div class="db-stats" id="db-stats">
+      <div class="stat"><div class="stat-val" id="db-total"  style="color:var(--accent2)">—</div><div class="stat-label">Total Saved</div></div>
+      <div class="stat"><div class="stat-val" id="db-avg"    style="color:var(--green)">—</div><div class="stat-label">Avg Score</div></div>
+      <div class="stat"><div class="stat-val" id="db-errors" style="color:var(--red)">—</div><div class="stat-label">With Errors</div></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="loadDbReviews()">↻ Refresh</button>
+      <button class="btn btn-danger"  onclick="deleteAllDb()">Delete All</button>
+    </div>
+    <div id="db-list">
+      <div class="hist-empty">Click Refresh to load from MongoDB</div>
+    </div>
+  </div>
+
+  <!-- ═══ ABOUT PAGE ═══ -->
+  <div class="page" id="page-about">
+    <div class="hero">
+      <h1>About <span class="hl">This Project</span></h1>
+      <p>Full-stack AI code reviewer with DevOps pipeline.</p>
+    </div>
+    <div class="about-grid">
+      <div class="about-card">
+        <h3>// What it does</h3>
+        <p>Analyzes any code using Groq AI — detects bugs, calculates time/space complexity, shows corrected code, and provides an optimized version. All saved to MongoDB.</p>
+      </div>
+      <div class="about-card">
+        <h3>// Tech stack</h3>
+        <div class="tech-row">
+          <span class="tech-tag">HTML5</span><span class="tech-tag">CSS3</span>
+          <span class="tech-tag">JavaScript</span><span class="tech-tag">Node.js</span>
+          <span class="tech-tag">Express</span><span class="tech-tag">MongoDB</span>
+          <span class="tech-tag">Mongoose</span><span class="tech-tag">Groq AI</span>
+          <span class="tech-tag">Docker</span><span class="tech-tag">GitHub Actions</span>
+          <span class="tech-tag">Vercel</span>
+        </div>
+      </div>
+      <div class="about-card">
+        <h3>// DevOps</h3>
+        <p>Full CI/CD pipeline: GitHub Actions (lint → security → Docker build → Vercel deploy → Slack notify). Multi-stage Docker with Trivy CVE scanning. <a href="devops.html" style="color:var(--accent2)">View DevOps Dashboard →</a></p>
+      </div>
+      <div class="about-card">
+        <h3>// Architecture</h3>
+        <p>Frontend → Groq API for AI review → Express backend → MongoDB Atlas. Deployed on Vercel (serverless functions) + Docker for self-hosting.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

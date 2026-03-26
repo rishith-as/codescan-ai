@@ -1,0 +1,73 @@
+# ══════════════════════════════════════
+#   CodeScan AI — docker-compose.yml
+#   Local dev + production stack
+# ══════════════════════════════════════
+
+version: '3.9'
+
+# ── SHARED NETWORK ────────────────────
+networks:
+  codescan-net:
+    driver: bridge
+
+# ── NAMED VOLUMES ─────────────────────
+volumes:
+  mongo-data:
+    driver: local
+
+# ══════════════════════════════════════
+services:
+
+  # ── APP ──────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: codescan-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV:  production
+      PORT:      3000
+      MONGO_URI: mongodb://mongo:27017/codescan
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - codescan-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout:  10s
+      retries:  3
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "com.codescan.service=app"
+
+  # ── MONGO ─────────────────────────────
+  mongo:
+    image: mongo:7-jammy
+    container_name: codescan-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: codescan
+    volumes:
+      - mongo-data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - codescan-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 20s
+      timeout:  10s
+      retries:  5
+      start_period: 20s
+    ports:
+      - "27017:27017"   # expose for local dev tools
+
+# ══════════════════════════════════════
+# DEV OVERRIDE: docker-compose.override.yml
+# ══════════════════════════════════════
