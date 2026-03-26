@@ -11,3 +11,5 @@ Thumbs.db
 .vercel/
 dist/
 build/
+
+.vercel
