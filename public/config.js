@@ -18,5 +18,5 @@ const CONFIG = {
 
   // ── Endpoints (do not change) ──
   GROQ_URL:    "https://api.groq.com/openai/v1/chat/completions",
-  BACKEND_URL: "https://codescan-ai-seven.vercel.app/api"
+  BACKEND_URL: "https://codescan-ai.vercel.app/api"
 };
